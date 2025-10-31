@@ -1,26 +1,39 @@
 import os
 import smtplib
 from email.mime.text import MIMEText
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 
 app = Flask(__name__)
 
-# 🔹 Just a quick test route to check if server is live
+# 🔹 Quick test route
 @app.route("/api/test", methods=["GET"])
 def test_route():
-    return jsonify({"status": "ok", "message": "Python server is responding!"})
+    response = jsonify({"status": "ok", "message": "Python server is responding!"})
+    response.headers["Access-Control-Allow-Origin"] = "*"  # allow all origins
+    return response
 
-# Get your secret key (email password or app key) from environment variables
+# Environment variables
 EMAIL_USER = os.environ.get("NOGANDEV_EMAIL")
 EMAIL_PASS = os.environ.get("NOGANDEV_KEY")  # your app password / API key
 TO_EMAIL = os.environ.get("TO_EMAIL")        # where the message should go
 
-@app.route("/api/server", methods=["POST"])
+# 🔹 Main message route
+@app.route("/api/server", methods=["POST", "OPTIONS"])
 def receive_message():
-    data = request.get_json()
+    # Handle preflight CORS request
+    if request.method == "OPTIONS":
+        response = make_response()
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        return response
 
+    # Parse JSON
+    data = request.get_json()
     if not data or "email" not in data or "name" not in data or "message" not in data:
-        return jsonify({"error": "Missing required fields"}), 400
+        response = jsonify({"error": "Missing required fields"})
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response, 400
 
     sender_name = data["name"]
     sender_email = data["email"]
@@ -36,11 +49,14 @@ def receive_message():
             server.login(EMAIL_USER, EMAIL_PASS)
             server.sendmail(EMAIL_USER, TO_EMAIL, msg.as_string())
 
-        return jsonify({"status": "success", "message": "Email sent successfully!"})
+        response = jsonify({"status": "success", "message": "Email sent successfully!"})
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        response = jsonify({"status": "error", "message": str(e)})
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        return response, 500
 
-
-# ⚠️ Do NOT include this part for Vercel runtime (keep it only for local tests)
+# ⚠️ Only for local testing
 if __name__ == "__main__":
     app.run(debug=True)

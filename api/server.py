@@ -5,6 +5,11 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+# 🔹 Just a quick test route to check if server is live
+@app.route("/api/test", methods=["GET"])
+def test_route():
+    return jsonify({"status": "ok", "message": "Python server is responding!"})
+
 # Get your secret key (email password or app key) from environment variables
 EMAIL_USER = os.environ.get("NOGANDEV_EMAIL")
 EMAIL_PASS = os.environ.get("NOGANDEV_KEY")  # your app password / API key
@@ -35,6 +40,7 @@ def receive_message():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# for local testing
+
+# ⚠️ Do NOT include this part for Vercel runtime (keep it only for local tests)
 if __name__ == "__main__":
     app.run(debug=True)
